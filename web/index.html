@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Order Lookup</title>
+</head>
+<body>
+  <h1>Order Lookup</h1>
+  <input id="orderId" placeholder="Enter Order UID" />
+  <button onclick="fetchOrder()">Find</button>
+  <pre id="result"></pre>
+  <script>
+    async function fetchOrder() {
+      const id = document.getElementById('orderId').value;
+      const res = await fetch('/order/' + id);
+      document.getElementById('result').textContent =
+        res.ok ? JSON.stringify(await res.json(), null, 2) : 'Not found';
+    }
+  </script>
+</body>
+</html>
