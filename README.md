@@ -22,17 +22,27 @@ docker-compose up -d
 ```sh
 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-goose -dir ./internal/storage/migrations postgres "host=localhost user=postgres 
-dbname=orders_data password=postgres sslmode=disable" up
+goose -dir ./migrations postgres "host=localhost user=postgres database=orders_data password=postgres sslmode=disable" up
 ```
 
-### 4. Запустите приложение
+> Начальная миграция: `000001_init_orders.sql` (создаёт таблицу `orders`).
+
+
+### 4. Настройте переменные окружения
+
+Скопируйте пример файла окружения и при необходимости измените значения:
+
+```sh
+cp .env.example .env
+```
+
+### 5. Запустите приложение
 
 ```sh
 go run cmd/main.go
 ```
 
-### 5. Откройте веб-интерфейс
+### 6. Откройте веб-интерфейс
 
 Перейдите в браузере по адресу:  
 [http://localhost:8081/](http://localhost:8081/)
