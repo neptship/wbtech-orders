@@ -14,7 +14,7 @@ cd wbtech-orders
 ### 2. Запустите сервисы через Docker Compose
 
 ```sh
-docker-compose up -d
+make docker up
 ```
 
 ### 3. Примените миграции к базе данных
@@ -22,7 +22,7 @@ docker-compose up -d
 ```sh
 go install github.com/pressly/goose/v3/cmd/goose@latest
 
-goose -dir ./migrations postgres "host=localhost user=postgres database=orders_data password=postgres sslmode=disable" up
+make migrate up
 ```
 
 > Начальная миграция: `000001_init_orders.sql` (создаёт таблицу `orders`).

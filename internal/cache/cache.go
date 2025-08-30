@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"hash/fnv"
+	"runtime"
 	"sync"
 
 	"github.com/neptship/wbtech-orders/internal/models"
@@ -11,41 +13,48 @@ type Cache interface {
 	Get(id string) (models.Order, bool)
 }
 
-type MyCache struct {
-	mu    *sync.RWMutex
+type shard struct {
+	mu    sync.RWMutex
 	store map[string]models.Order
-	order []string
-	size  int
 }
 
-func NewCache(size int) Cache {
-	return &MyCache{
-		store: make(map[string]models.Order),
-		order: make([]string, 0, size),
-		size:  size,
-		mu:    &sync.RWMutex{},
+type MyCache struct {
+	shards []shard
+}
+
+func NewCache(_ int) Cache {
+	n := runtime.NumCPU() * 2
+	if n < 4 {
+		n = 4
 	}
+	ss := make([]shard, n)
+	for i := range ss {
+		ss[i] = shard{store: make(map[string]models.Order)}
+	}
+	return &MyCache{shards: ss}
 }
 
 func (c *MyCache) Set(id string, order models.Order) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if _, ok := c.store[id]; ok {
-		c.store[id] = order
-		return
-	}
-	if c.size > 0 && len(c.order) >= c.size {
-		old := c.order[0]
-		delete(c.store, old)
-		c.order = c.order[1:]
-	}
-	c.store[id] = order
-	c.order = append(c.order, id)
+	s := c.shardFor(id)
+	s.mu.Lock()
+	s.store[id] = order
+	s.mu.Unlock()
 }
 
 func (c *MyCache) Get(id string) (models.Order, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	val, ok := c.store[id]
-	return val, ok
+	s := c.shardFor(id)
+	s.mu.RLock()
+	v, ok := s.store[id]
+	s.mu.RUnlock()
+	return v, ok
+}
+
+func (c *MyCache) shardFor(id string) *shard {
+	if len(c.shards) == 1 {
+		return &c.shards[0]
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(id))
+	idx := int(h.Sum32() % uint32(len(c.shards)))
+	return &c.shards[idx]
 }
